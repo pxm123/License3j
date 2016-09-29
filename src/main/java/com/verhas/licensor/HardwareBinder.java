@@ -1,6 +1,8 @@
 package com.verhas.licensor;
 
-import static com.verhas.utils.Sugar.matchesAny;
+import static license3j.main.java.com.verhas.utils.Sugar.matchesAny;
+
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -9,6 +11,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.UUID;
 
@@ -262,7 +265,17 @@ public class HardwareBinder {
 		md5.update(architectureString.getBytes("utf-8"), 0,
 				architectureString.getBytes("utf-8").length);
 	}
-
+    private void updateWithWindowuuid(final MD5Digest md5) throws IOException{
+    	Process process = Runtime.getRuntime().exec(  
+                new String[] { "wmic", "csproduct", "get", "uuid" });  
+        process.getOutputStream().close();  
+        Scanner sc = new Scanner(process.getInputStream()); 
+        String firstString=sc.next();
+        final String windowsuuidString=sc.next();
+        System.out.println(windowsuuidString);
+        md5.update(windowsuuidString.getBytes("utf-8"), 0,
+        		windowsuuidString.getBytes("utf-8").length);
+    }
 	/**
 	 * Calculate the UUID for the machine this code is running on. To do this
 	 * the method lists all network interfaces that are real 'server' interfaces
@@ -278,12 +291,9 @@ public class HardwareBinder {
 	 * 
 	 * @return the UUID of the machine or null if the uuid can not be
 	 *         calculated.
-	 * @throws SocketException
-	 * @throws UnsupportedEncodingException
-	 * @throws UnknownHostException
+	 * @throws Throwable 
 	 */
-	public UUID getMachineId() throws UnsupportedEncodingException,
-			SocketException, UnknownHostException {
+	public UUID getMachineId() throws Throwable {
 		final MD5Digest md5 = new MD5Digest();
 		md5.reset();
 		if (useNetwork) {
@@ -295,7 +305,8 @@ public class HardwareBinder {
 		if (useArchitecture) {
 			updateWithArchitecture(md5);
 		}
-		final byte[] digest = new byte[16];
+		updateWithWindowuuid(md5);
+		final byte[] digest = new byte[64];
 		md5.doFinal(digest, 0);
 		return UUID.nameUUIDFromBytes(digest);
 	}
@@ -304,12 +315,9 @@ public class HardwareBinder {
 	 * Get the machine id as an UUID string.
 	 * 
 	 * @return the UUID as a string
-	 * @throws UnknownHostException
-	 * @throws SocketException
-	 * @throws UnsupportedEncodingException
+	 * @throws Throwable 
 	 */
-	public String getMachineIdString() throws UnsupportedEncodingException,
-			SocketException, UnknownHostException {
+	public String getMachineIdString() throws Throwable {
 		final UUID uuid = getMachineId();
 		if (uuid != null) {
 			return uuid.toString();
@@ -324,13 +332,10 @@ public class HardwareBinder {
 	 * @param uuid
 	 *            expected
 	 * @return true if the argument passed is the uuid of the current machine.
-	 * @throws UnknownHostException
-	 * @throws SocketException
-	 * @throws UnsupportedEncodingException
+	 * @throws Throwable 
 	 */
 	public boolean assertUUID(final UUID uuid)
-			throws UnsupportedEncodingException, SocketException,
-			UnknownHostException {
+			throws Throwable {
 		final UUID machineUUID = getMachineId();
 		if (machineUUID == null) {
 			return false;
@@ -344,8 +349,9 @@ public class HardwareBinder {
 	 * @param uuid
 	 *            expected in String format
 	 * @return true if the argument passed is the uuid of the current machine.
+	 * @throws Throwable 
 	 */
-	public boolean assertUUID(final String uuid) {
+	public boolean assertUUID(final String uuid) throws Throwable {
 		try {
 			return assertUUID(java.util.UUID.fromString(uuid));
 		} catch (Exception e) {
@@ -361,13 +367,10 @@ public class HardwareBinder {
 	 * calculating the hardware UUID.
 	 * 
 	 * @param args not used
-	 * @throws UnknownHostException
-	 * @throws SocketException
-	 * @throws UnsupportedEncodingException
+	 * @throws Throwable 
 	 */
 	public static void main(final String[] args)
-			throws UnsupportedEncodingException, SocketException,
-			UnknownHostException {
+			throws Throwable {
 		final HardwareBinder hb = new HardwareBinder();
 		System.out.print(hb.getMachineIdString());
 	}
